@@ -16,6 +16,19 @@ cellWidth = (WIDE - 20) // LINES  # 格子宽度
 current_po = (-1, -1)  # 最后一个落子位置，（-1，-1）表示当前数据不可用
 flag = 0  # 同步标志，0为初始化，1为已落子，2为等待人工落子，3为等待AI落子
 
+# 棋型表
+
+HUOSI = (30)
+HUOSAN = (14, 22, 26, 28)
+HUOER = (6, 10, 12, 18, 20, 24)
+
+CHONGSI = (15, 23, 27, 29, 30)
+MIANSAN = (7, 11, 13, 14, 19, 21, 22, 25, 26, 28)
+MIANER = (3, 5, 6, 9, 10, 12, 17, 18, 20, 24)
+
+qxmh = (HUOER, HUOSAN, HUOER)
+qxmc = (CHONGSI, MIANSAN, MIANER)
+
 
 #####################
 # 设置标志,因为对象无法直接操作全局变量，特别用这个函数来操作
@@ -148,6 +161,16 @@ if __name__ == '__main__':
         for j in range(LINES):
             a[i].append(0)  # 棋盘上每个格子初始为空
 
+    # 初始化棋型表
+    # b[0]-b[5] 分别代表活四、冲四、活三、闷三、活二、闷二 的棋型
+    b = []
+    for i in range(6):
+        b.append([])
+
+    qx = []
+    qx.append(b)  # 黑棋棋型库
+    qx.append(b)  # 白棋棋型库
+
     # 初始化时钟
     clock = pygame.time.Clock()
 
@@ -190,8 +213,50 @@ if __name__ == '__main__':
             if judge_victory(current_po, currentPlayer.id):
                 print(currentPlayer.name + "我赢了，哈哈哈哈哈哈啊哈哈！")
 
-            # TODO：记录棋型
+            # 记录棋型
+            print("_____________")
+            for x in range(0, 11):
+                for y in range(0, 5):
+                    for z in range(1, 3):  # 需要分开计算两种颜色棋子的棋型库
+                        res = 0
+                        if a[x][y] == z:
+                            res += 1
+                        dir = (1, 0)  # 横向
+                        cx, cy = x, y
+                        if a[x][y] == 0:  # 当前为眼，可以测冲器
+                            chong_flag = True
+                        else:
+                            chong_flag = False
+                        for st in range(0, 4):
+                            cx = cx + dir[0]
+                            cy = cy + dir[1]
 
+                            if a[cx][cy] != z and a[cx][cy] != 0:
+                                break
+
+                            res = res << 1
+                            if a[cx][cy] == z:
+                                res += 1
+                        # 测试活棋型,如果沿着这个方向下一个格子出界，或者不为空，则不能构成活棋型
+                        if chong_flag:
+                            if cx + 1 > 14 or cy + 1 > 14:
+                                chong_flag = False
+                            elif a[cx + 1][cy + 1] != 0:
+                                chong_flag = False
+
+                        if chong_flag:
+                            res = res << 1
+                            for q in qxmh:
+                                if res in q:
+                                    print('活了啊！' + str(res))
+
+                        else:
+                            for q in qxmc:
+                                if res in q:
+                                    print('冲了啊！' + str(res))
+
+                        if res != 0:
+                            print('玩家' + str(z) + '位置[' + str(x) + ',' + str(y) + '],值：' + str(res))
             # 转换玩家
             if currentPlayer == player1:
                 currentPlayer = player2
