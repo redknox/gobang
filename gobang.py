@@ -16,28 +16,42 @@ cellWidth = (WIDE - 20) // LINES  # 格子宽度
 current_po = (-1, -1)  # 最后一个落子位置，（-1，-1）表示当前数据不可用
 flag = 0  # 同步标志，0为初始化，1为已落子，2为等待人工落子，3为等待AI落子
 
-# 棋型表
+# 棋型表，这里只列出了冲棋型，因为活棋型实际只是冲棋型的一个子集，所以就没有单独列出
 
-HUOSI = (30)
-HUOSAN = (14, 22, 26, 28)
-HUOER = (6, 10, 12, 18, 20, 24)
+CHONGSI = (15, 23, 27, 29, 30)  # 冲4
+MIANSAN = (7, 11, 13, 14, 19, 21, 22, 25, 26, 28)  # 闷三
+MIANER = (3, 5, 6, 9, 10, 12, 17, 18, 20, 24)  # 闷二
 
-CHONGSI = (15, 23, 27, 29, 30)
-MIANSAN = (7, 11, 13, 14, 19, 21, 22, 25, 26, 28)
-MIANER = (3, 5, 6, 9, 10, 12, 17, 18, 20, 24)
-
-qxmh = (HUOER, HUOSAN, HUOER)
+# 棋型集合
 qxmc = (CHONGSI, MIANSAN, MIANER)
 
+# 方向集合，1,0 表示水平向右，0，1表示水平向下，1，1表示从左上到右下，2 表示从左下到右上
+direction = ((1, 0), (0, 1), (1, 1), (1, -1))
 
-#####################
-# 设置标志,因为对象无法直接操作全局变量，特别用这个函数来操作
-# 输入：int id 状态类型：0 初始化 1 已经落子，等待判定 2 等待人工落子 3 等待AI落子
-#####################
+# 区域集合，整个棋盘分为4个区域，不同的区域可以检测的方向不同，第一个数组为x值取值范围，第二个数组为y值取值范围，第三个数组为可以检测的方向的id
+# 例如：第一区域为(0,0)到(11,4),这个区域内可以检测的方向为0，1，2，既水平、垂直、左上到右下
+area = [
+    [[0, 11], [0, 4], [0, 1, 2]],
+    [[0, 11], [4, 11], [0, 1, 2, 3]],
+    [[0, 11], [11, 15], [0, 3]],
+    [[11, 15], [0, 11], [1]]
+]
 
-def set_flag(id):
-    global flag
-    flag = id
+# 棋盘表，用于存储当前棋盘情况，下标为x,y的坐标值，表示棋盘上的眼位，值为落子情况。0为没落子，1为玩家1的黑棋，2为玩家2的黑棋。
+a = []
+
+# 棋型库，里面存储了检测出的所有棋型供双方博弈时参考。下标数据结构为：
+# b[玩家id][活冲标志][活冲类]
+# 玩家id： 0 Player1 1 Player2
+# 活冲标志：0 活棋型 1 冲棋型（闷棋型）
+# 活冲类：0 活四或者冲四 1 活三或者闷三 2 活二或者闷二
+# 例如：b[1][0][1]=表示玩家2白棋玩家的"活三"棋
+# 值：[(开始位置坐标),方向，棋型）
+# 开始位置：棋型开始的地方，（x,y)
+# 方向：代表方向的id
+# 棋型：实际的棋型数字
+
+b = []
 
 
 #####################
@@ -70,7 +84,8 @@ class Human_player(Player):
         self.type = 2  # 指定当前玩家为真人玩家
 
     def move(self):
-        set_flag(2)  # 只需要修改标志位为2，等待系统接收键盘点击事件即可
+        global flag
+        flag = 2  # 只需要修改标志位为2，等待系统接收键盘点击事件即可
 
 
 #####################
@@ -137,7 +152,68 @@ def u_click(mouse_x, mouse_y):
     return (x, y)
 
 
+#####################
+# 检测从一个点，到一个方向的棋型
+# 输入：int x,y 棋盘上一个点位的坐标；dir 一个具体方向，定义在数组direction中
+#####################
+
+def q_type(x, y, dir_id):
+    global b
+
+    for player_id in (1, 2):  # 需要分开统计两名玩家各自的棋型库
+        op_player_id = ((player_id - 1) ^ 1) + 1  # 非当前统计玩家的id
+        q_type_value = 0  # 棋型的值
+        q_ready = True  # 是否构成棋型，当连续的5个位置有对方棋子是不构成棋型
+        huo_flag = False
+
+        if a[x][y] == player_id:
+            q_type_value += 1
+        elif a[x][y] == op_player_id:  # 如果当前位置直接就是对手棋子则退出本次循环
+            continue
+        else:  # 如果当前位置为空位，则可以测活棋型，否则只能测冲棋型
+            huo_flag = True
+
+        q_dir = direction[dir_id]
+        cx, cy = x, y
+        for t in range(0, 4):  # 测试该方向接下来的四个位置
+            cx = cx + q_dir[0]
+            cy = cy + q_dir[1]
+
+            if a[cx][cy] == op_player_id:  # 如果有对方的子，则
+                q_ready = False
+                break
+
+            q_type_value = q_type_value << 1
+            if a[cx][cy] == player_id:
+                q_type_value += 1
+        if not q_ready:  # 如果有对方子阻挡不构成棋型，则进行下一个循环
+            continue
+
+        if q_type_value == 0:  # 如果连续5个都为孔眼，则进行下一个循环
+            continue
+
+        # 测试活棋型,如果沿着这个方向下一个格子出界，或者不为空，则不能构成活棋型
+        if huo_flag:
+            if cx + q_dir[0] > 14 or cy + q_dir[1] > 14 or cy + q_dir[1] < 0:
+                huo_flag = False
+            elif a[cx + q_dir[0]][cy + q_dir[1]] != 0:
+                huo_flag = False
+
+        player_nu = player_id - 1
+        if huo_flag:
+            huo_nu = 0
+        else:
+            huo_nu = 1
+
+        i = 0
+        for q in qxmc:
+            if q_type_value in q:
+                b[player_nu][huo_nu][i].append(((x, y), dir_id, q_type_value))
+            i += 1
+
+
 if __name__ == '__main__':
+
     pygame.init()
     windowSurface = pygame.display.set_mode((WIDE, WIDE), 0, 32)
     pygame.display.set_caption('孔海峰的五子棋练习')
@@ -155,21 +231,10 @@ if __name__ == '__main__':
     pygame.display.update()
 
     # 初始化棋盘数组
-    a = []
     for i in range(LINES):
         a.append([])
         for j in range(LINES):
             a[i].append(0)  # 棋盘上每个格子初始为空
-
-    # 初始化棋型表
-    # b[0]-b[5] 分别代表活四、冲四、活三、闷三、活二、闷二 的棋型
-    b = []
-    for i in range(6):
-        b.append([])
-
-    qx = []
-    qx.append(b)  # 黑棋棋型库
-    qx.append(b)  # 白棋棋型库
 
     # 初始化时钟
     clock = pygame.time.Clock()
@@ -180,6 +245,7 @@ if __name__ == '__main__':
 
     player2 = Human_player(2, 'Haifeng')
 
+    设置当前玩家为黑方
     currentPlayer = player1
 
     # flag 是标志，0表示初始化，1表示当前玩家已经落子，2表示等待人工落子，3表示等待AI落子
@@ -203,7 +269,7 @@ if __name__ == '__main__':
 
         # 如果已经落子
         if flag == 1:
-            # 重绘棋盘
+            # 重绘棋盘并刷新
             draw_piece(current_po, currentPlayer.id)
             pygame.display.update()
 
@@ -214,54 +280,23 @@ if __name__ == '__main__':
                 print(currentPlayer.name + "我赢了，哈哈哈哈哈哈啊哈哈！")
 
             # 记录棋型
-            print("_____________")
-            for x in range(0, 11):
-                for y in range(0, 5):
-                    for z in range(1, 3):  # 需要分开计算两种颜色棋子的棋型库
-                        res = 0
-                        if a[x][y] == z:
-                            res += 1
-                        dir = (1, 0)  # 横向
-                        cx, cy = x, y
-                        if a[x][y] == 0:  # 当前为眼，可以测冲器
-                            chong_flag = True
-                        else:
-                            chong_flag = False
-                        for st in range(0, 4):
-                            cx = cx + dir[0]
-                            cy = cy + dir[1]
 
-                            if a[cx][cy] != z and a[cx][cy] != 0:
-                                break
+            # 清空棋型库，重新计算全部棋型
 
-                            res = res << 1
-                            if a[cx][cy] == z:
-                                res += 1
-                        # 测试活棋型,如果沿着这个方向下一个格子出界，或者不为空，则不能构成活棋型
-                        if chong_flag:
-                            if cx + 1 > 14 or cy + 1 > 14:
-                                chong_flag = False
-                            elif a[cx + 1][cy + 1] != 0:
-                                chong_flag = False
+            b = [[[[], [], []], [[], [], []]], [[[], [], []], [[], [], []]]]
 
-                        if chong_flag:
-                            res = res << 1
-                            for q in qxmh:
-                                if res in q:
-                                    print('活了啊！' + str(res))
-
-                        else:
-                            for q in qxmc:
-                                if res in q:
-                                    print('冲了啊！' + str(res))
-
-                        if res != 0:
-                            print('玩家' + str(z) + '位置[' + str(x) + ',' + str(y) + '],值：' + str(res))
+            for vw in area:
+                for x in range(vw[0][0], vw[0][1]):
+                    for y in range(vw[1][0], vw[1][1]):
+                        for d in vw[2]:
+                            q_type(x, y, d)
             # 转换玩家
             if currentPlayer == player1:
                 currentPlayer = player2
             else:
                 currentPlayer = player1
+
+            print(b)
 
             # 当前玩家走子
             currentPlayer.move()
