@@ -7,6 +7,7 @@ import pygame
 import sys
 from pygame.locals import *
 import abc
+import random
 
 ########################################################################################################################
 FPS = 50  # 帧数
@@ -16,14 +17,21 @@ cellWidth = (WIDE - 20) // LINES  # 格子宽度
 current_po = (-1, -1)  # 最后一个落子位置，（-1，-1）表示当前数据不可用
 flag = 0  # 同步标志，0为初始化，1为已落子，2为等待人工落子，3为等待AI落子
 
-# 棋型表，这里只列出了冲棋型，因为活棋型实际只是冲棋型的一个子集，所以就没有单独列出
+# 棋型表，这里只列出了冲棋型，因为活棋型实际只是冲棋型的一个子集，配合冲活标志可以检测活棋，所以就没有单独列出
 
-CHONGSI = (15, 23, 27, 29, 30)  # 冲4
+CHONGSI = (15, 23, 27, 29, 30)  # 冲四
 MIANSAN = (7, 11, 13, 14, 19, 21, 22, 25, 26, 28)  # 闷三
 MIANER = (3, 5, 6, 9, 10, 12, 17, 18, 20, 24)  # 闷二
+MINYI = (16, 8, 4, 2, 1)  # 闷一，术语里没有这个叫法，为了计算ai特意加上
 
-# 棋型集合
-qxmc = (CHONGSI, MIANSAN, MIANER)
+# 定义术语，AC表示构造己方冲棋，0 4棋型，1 3棋型 2 2棋型，如 AH0 表示用己方活4赢得比赛，DC2表示防守对方场上的冲二棋型，阻止构成冲三
+A = 1  # 进攻，构造自己的棋型
+D = 0  # 防守, 破坏对方的棋型
+C = 1  # 冲棋
+H = 0  # 活棋
+
+# 棋型集和
+qxmc = (CHONGSI, MIANSAN, MIANER, MINYI)
 
 # 方向集合，1,0 表示水平向右，0，1表示水平向下，1，1表示从左上到右下，2 表示从左下到右上
 direction = ((1, 0), (0, 1), (1, 1), (1, -1))
@@ -56,6 +64,24 @@ b = []
 
 #####################
 #
+# 根据传入的棋型id计算可以落子的位置
+# 输入： int id,huo_flag 冲活标志，True为活，False为冲
+# 输出： 可以落子的数组
+#####################
+def get_allow_persion(id):
+    st = (16, 8, 4, 2, 1)
+    i = 0
+    re = []
+    for ssi in st:
+        if id & ssi == 0:
+            re.append(i)
+        i = i + 1
+    return re
+
+    #####################
+
+
+#
 # 棋手类.所有棋手的基类
 #
 #####################
@@ -69,6 +95,69 @@ class Player(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def move(self):
         pass
+
+
+####################
+#
+# AiRnd 攻击和防守时，同等级别的棋型随机选取一个进行。例如同时存在两个活三棋，则随机取一个攻防
+#
+####################
+
+class AI_rnd_player(Player):
+    def __init__(self, id, name):
+        self.id = id
+        self.name = name
+        self.type = 3  # 等待AI落子
+
+    def move_on(self, pro):
+        rest = get_allow_persion(pro[2])
+        print(rest)
+
+        persi = random.randint(0, len(rest) - 1)
+        print(persi)
+
+        x = pro[0][0] + direction[pro[1]][0] * rest[persi]
+        y = pro[0][1] + direction[pro[1]][1] * rest[persi]
+        return x, y
+
+    def move(self):
+        global flag
+        global current_po
+        A = self.id - 1
+        D = A ^ 1
+
+        t = []
+
+        # 攻防命令表，程序会按照顺序试图执行攻防命令，无法执行则读取下一条，可以执行则退出循环
+        Mser = [
+            [D, H, 0],
+            [D, H, 1],
+            [D, C, 0]
+        ]
+        print('----------------------------')
+        print(Mser)
+        for lssi in Mser:
+            print(lssi)
+            lsser = b[lssi[0]][lssi[1]][lssi[2]]
+            lens = len(lsser)
+            if lens > 0:
+                t = random.randint(0, lens - 1)
+                tli = lsser[t]
+                break
+
+        if t == []:
+            x = random.randint(0, 14)
+            y = random.randint(0, 14)
+            while a[x][y] != 0:
+                x = random.randint(0, 14)
+                y = random.randint(0, 14)
+            current_po = (x, y)
+
+        else:
+            print(tli)
+            current_po = self.move_on(tli)
+
+        flag = 1
 
 
 #####################
@@ -90,14 +179,14 @@ class Human_player(Player):
 
 #####################
 # 绘制棋子
-# input: x,y 落子在棋盘上的位置，color 落子颜色
+# input: int x,y 落子在棋盘上的位置，int id 玩家Id，1 黑棋玩家；2 白棋玩家
 # output: 无
 #####################
 def draw_piece(po, id):
     # 不进行合法性检查了
     x = po[0] * cellWidth + 10
     y = po[1] * cellWidth + 10
-    if (id == 1):
+    if id == 1:
         windowSurface.blit(go_piece_black, (x, y))
     else:
         windowSurface.blit(go_piece_white, (x, y))
@@ -139,17 +228,17 @@ def judge_victory(po, player):
 #####################
 def u_click(mouse_x, mouse_y):
     if mouse_x < 25 or mouse_y < 20 or mouse_x > 761 or mouse_y > 761:
-        return (-1, -1)
+        return -1, -1
 
     # 根据点击位置计算落子位置
-    x = (mouse_x - 10) // cellWidth
-    y = (mouse_y - 10) // cellWidth
+    tx = (mouse_x - 10) // cellWidth
+    ty = (mouse_y - 10) // cellWidth
 
     # 判断当前位置上是否有棋子，有的话本次点击无效
-    if a[x][y] != 0:
-        return (-1, -1)
+    if a[tx][ty] != 0:
+        return -1, -1
 
-    return (x, y)
+    return tx, ty
 
 
 #####################
@@ -243,9 +332,9 @@ if __name__ == '__main__':
 
     player1 = Human_player(1, 'kong')
 
-    player2 = Human_player(2, 'Haifeng')
+    player2 = AI_rnd_player(2, 'haifeng')
 
-    设置当前玩家为黑方
+    # 设置当前玩家为黑方
     currentPlayer = player1
 
     # flag 是标志，0表示初始化，1表示当前玩家已经落子，2表示等待人工落子，3表示等待AI落子
@@ -283,20 +372,20 @@ if __name__ == '__main__':
 
             # 清空棋型库，重新计算全部棋型
 
-            b = [[[[], [], []], [[], [], []]], [[[], [], []], [[], [], []]]]
+            b = [[[[], [], [], []], [[], [], [], []]], [[[], [], [], []], [[], [], [], []]]]
 
             for vw in area:
                 for x in range(vw[0][0], vw[0][1]):
                     for y in range(vw[1][0], vw[1][1]):
                         for d in vw[2]:
                             q_type(x, y, d)
+            print('============================')
+            print(b)
             # 转换玩家
             if currentPlayer == player1:
                 currentPlayer = player2
             else:
                 currentPlayer = player1
-
-            print(b)
 
             # 当前玩家走子
             currentPlayer.move()
