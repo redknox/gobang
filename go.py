@@ -6,12 +6,18 @@
 __author__ = 'Haifeng Kong'
 
 import cover
+import new
+import option
+import play
 
 if __name__ == '__main__':
     f = cover.load()
-    if f == 0:
-        pass  # 打开新建页面
-    elif f == 1:
-        pass  # 打开选项页面
-    elif f == 2:
-        pass  # 打开读取页面
+    while f != 2:
+        if f == 0:
+            f = new.load()
+        elif f == 1:
+            f = option.load()
+        elif f == 3:
+            f = play.load()
+        elif f == 5:
+            f = cover.load()

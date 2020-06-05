@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-' cover module '
+' new module '
 
 __author__ = 'Haifeng Kong'
 
@@ -14,14 +14,7 @@ import button
 from config import *
 
 # 变量#
-cover_img_filename = "封面1.png"  # 封面背景文件
-
-# 操作的按钮，第一列为按钮上显示的文字，第二列为操作的ID
-buttonList = (
-    ["新游戏", 0],
-    ["选项", 1],
-    ["退出", 2],
-)
+new_img_filename = "新建背景.jpg"  # 封面背景文件
 
 
 #################################################################
@@ -35,9 +28,19 @@ def init():
     screen = pygame.display.set_mode(SCREEN, 0, 32)
 
     # 绘制背景
-    background = pygame.image.load(cover_img_filename)
+    background = pygame.image.load(new_img_filename)
     background = pygame.transform.scale(background, SCREEN)
     screen.blit(background, (0, 0))
+
+    # 构造按钮组
+    buttonList = []
+
+    if SHOW_ORDER:
+        buttonList.append(["落子顺序：是", 6])
+    else:
+        buttonList.append(["落子顺序：否", 6])
+
+    buttonList.append(["返回", 5])
 
     # 绘制按钮
     surf = button.init(buttonList, screen)
@@ -57,17 +60,18 @@ def load():
                 exit()
             elif event.type == MOUSEBUTTONDOWN:  # 鼠标按键被按下
                 func = button.checkButtonPress(pygame.mouse.get_pos())
-                if func != -1:
+                if func == 6:
+                    global SHOW_ORDER
+                    SHOW_ORDER = not SHOW_ORDER
+                    init()
+                elif func == 5:
                     return func  # 返回按钮对应的操作
 
 
 def test():
     while True:
         fu = load()
-        if fu < 0:
-            print("检测到鼠标点击，但未点击按钮。")
-        else:
-            print(buttonList[fu][0] + "按钮被点击。")
+        print(fu)
 
 
 if __name__ == '__main__':

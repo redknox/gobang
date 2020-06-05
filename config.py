@@ -46,6 +46,13 @@ BTN_ON_DEFAULT = (BTN_ARRANGED_VERTICALLY, BTN_ON_CENTER)
 # 文字相关
 FONT_FILE = "方正硬笔楷书简体.ttf"
 
+########################################################
+# 变量
+# 下面的变量在程序中可以更改
+########################################################
+
+SHOW_ORDER = False
+
 
 def test():
     print('每秒刷新数 FPS=' + str(FPS))
