@@ -9,7 +9,6 @@ import cover
 
 if __name__ == '__main__':
     f = cover.load()
-    print(f)
     if f == 0:
         pass  # 打开新建页面
     elif f == 1:

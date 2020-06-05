@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-' graphic module '
+' cover module '
 
 __author__ = 'Haifeng Kong'
 
@@ -9,6 +9,8 @@ from sys import exit
 
 import pygame
 from pygame.locals import *
+
+import button
 from config import *
 
 # 变量#
@@ -19,8 +21,7 @@ buttonList = (
     ["新游戏", 0],
     ["读取进度", 1],
     ["选项", 2],
-    ["制作组", 3],
-    ["退出", 4],
+    ["退出", 3],
 )
 
 
@@ -29,62 +30,24 @@ buttonList = (
 #################################################################
 
 def init():
-    pygame.init()
+    # 初始化界面
+    if not pygame.get_init():
+        pygame.init()
     screen = pygame.display.set_mode(SCREEN, 0, 32)
+
     # 绘制背景
     background = pygame.image.load(cover_img_filename)
     background = pygame.transform.scale(background, SCREEN)
     screen.blit(background, (0, 0))
 
     # 绘制按钮
+    surf = button.init(buttonList, screen)
 
-    btnLineWidth = BTN_SIZE[1] + BTN_LINE_SPACING  # 每行按钮的总宽度（包含行间距）
+    # 合并图层
+    screen.blit(surf, (0, 0))
 
-    surface2 = screen.convert_alpha()  # 按钮为透明图层
-
-    # 计算第一个按钮的左上角坐标
-    btnNumbers = len(buttonList)  # 按钮总数
-    btnUpLeftX = (WIDE - BTN_SIZE[0]) / 2  # 左上角X坐标
-    btnUpLeftY = (WIDE - (BTN_SIZE[1] * btnNumbers + (btnNumbers - 1) * 50)) / 2  # 左上角Y坐标
-
-    # 在画布上依次绘制按钮
-    for i in range(btnNumbers):
-        pygame.draw.rect(surface2, BTN_COLOR,
-                         [btnUpLeftX,
-                          btnUpLeftY + btnLineWidth * i,
-                          BTN_SIZE[0],
-                          BTN_SIZE[1]],
-                         0)
-        buttonList[i].append((btnUpLeftX, btnUpLeftY + btnLineWidth * i))
-    screen.blit(surface2, (0, 0))
-
-    # 绘制按钮上的文字
-
-    font = pygame.font.Font(FONT_FILE, BTN_FONT_SIZE)  # 读取字体
-    font.set_bold(True)
-
-    for i in range(btnNumbers):
-        surface = font.render(buttonList[i][0], False, BTN_TXT_COLOR)  # 渲染文字
-        fontRect = surface.get_rect()  # 取得渲染后画板的尺寸
-        # 根据画板的尺寸把文字贴在背景上
-        screen.blit(surface, (
-            (WIDE - fontRect[2]) / 2,
-            (btnUpLeftY + (BTN_SIZE[1] - fontRect[3]) / 2) + btnLineWidth * i + 2))  # 实际应用将文字向下修正两个像素，否则显得文字在按钮上偏上
-
+    # 展示
     pygame.display.update()
-
-
-##############################################################
-# 根据传入的坐标，判断是否在按钮范围内，如果在，则返回按钮的操作ID，否则返回-1
-##############################################################
-
-
-def checkButton(pos):
-    for bu in buttonList:
-        if bu[2][0] < pos[0] < bu[2][0] + BTN_SIZE[0]:
-            if bu[2][1] < pos[1] < bu[2][1] + BTN_SIZE[1]:
-                return bu[1]
-    return -1
 
 
 def load():
@@ -94,7 +57,9 @@ def load():
             if event.type == QUIT:  # 退出按钮被按下
                 exit()
             elif event.type == MOUSEBUTTONDOWN:  # 鼠标按键被按下
-                func = checkButton(pygame.mouse.get_pos())  # 取得鼠标点击按钮的编号，如果未点击按钮，则返回-1
+                func = button.checkButtonPress(pygame.mouse.get_pos())
+                if func == 3:
+                    exit()
                 return func  # 返回按钮对应的操作
 
 

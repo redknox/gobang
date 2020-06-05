@@ -1,13 +1,19 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+'五子棋程序'
+__author__ = 'Haifeng Kong'
+
+import abc
+import random
+import sys
+
 ########################################################################################################################
 # 五子棋
 # V1 实现交互界面：点击屏幕后自动落子，并计算胜负。
 # TODO: 将判断胜负的功能抽象为函数，将代码按功能拆分
 ########################################################################################################################
 import pygame
-import sys
 from pygame.locals import *
-import abc
-import random
 
 ########################################################################################################################
 FPS = 50  # 帧数
@@ -22,7 +28,7 @@ flag = 0  # 同步标志，0为初始化，1为已落子，2为等待人工落�
 CHONGSI = (15, 23, 27, 29, 30)  # 冲四
 MIANSAN = (7, 11, 13, 14, 19, 21, 22, 25, 26, 28)  # 闷三
 MIANER = (3, 5, 6, 9, 10, 12, 17, 18, 20, 24)  # 闷二
-MINYI = (16, 8, 4, 2, 1)  # 闷一，术语里没有这个叫法，为了计算ai特意加上
+MINYI = (16, 8, 4, 2, 1)  # 闷一，术语里没有这个叫法，为了计算特意加上
 
 # 定义术语，AC表示构造己方冲棋，0 4棋型，1 3棋型 2 2棋型，如 AH0 表示用己方活4赢得比赛，DC2表示防守对方场上的冲二棋型，阻止构成冲三
 A = 1  # 进攻，构造自己的棋型
@@ -61,6 +67,14 @@ a = []
 
 b = []
 
+# 落子权限库，计算棋盘上每个空位落子的权限。
+# 如果能够赢棋，则加1000，可以是活四或冲四的眼
+# 如果能凑成活四、冲四，则加100
+# 如果横凑成活三、冲三、则加10
+# 如果能凑成活二、冲二、则加1
+
+c = [[], []]
+
 
 #####################
 #
@@ -78,9 +92,7 @@ def get_allow_persion(id):
         i = i + 1
     return re
 
-    #####################
-
-
+#####################
 #
 # 棋手类.所有棋手的基类
 #
@@ -141,6 +153,18 @@ class AI_rnd_player(Player):
             lsser = b[lssi[0]][lssi[1]][lssi[2]]
             lens = len(lsser)
             if lens > 0:
+                '''
+                largye = 0
+                for terd in lsser:
+                    for dvs in terd[3]:
+                        print(dvs)
+                        if c[lssi[0]][dvs[0]][dvs[1]] > largye:
+                            largye = c[lssi[0]][dvs[0]][dvs[1]]
+                            print(largye)
+                            print(terd[0])
+                            tli = terd[0]
+                '''
+
                 t = random.randint(0, lens - 1)
                 tli = lsser[t]
                 break
@@ -250,6 +274,7 @@ def q_type(x, y, dir_id):
     global b
 
     for player_id in (1, 2):  # 需要分开统计两名玩家各自的棋型库
+        empty_per = []
         op_player_id = ((player_id - 1) ^ 1) + 1  # 非当前统计玩家的id
         q_type_value = 0  # 棋型的值
         q_ready = True  # 是否构成棋型，当连续的5个位置有对方棋子是不构成棋型
@@ -261,6 +286,7 @@ def q_type(x, y, dir_id):
             continue
         else:  # 如果当前位置为空位，则可以测活棋型，否则只能测冲棋型
             huo_flag = True
+            empty_per.append([x, y])
 
         q_dir = direction[dir_id]
         cx, cy = x, y
@@ -275,6 +301,8 @@ def q_type(x, y, dir_id):
             q_type_value = q_type_value << 1
             if a[cx][cy] == player_id:
                 q_type_value += 1
+            else:  # 如果没有子
+                empty_per.append([cx, cy])
         if not q_ready:  # 如果有对方子阻挡不构成棋型，则进行下一个循环
             continue
 
@@ -287,6 +315,8 @@ def q_type(x, y, dir_id):
                 huo_flag = False
             elif a[cx + q_dir[0]][cy + q_dir[1]] != 0:
                 huo_flag = False
+            else:
+                empty_per.append([cx + q_dir[0], cy + q_dir[1]])
 
         player_nu = player_id - 1
         if huo_flag:
@@ -297,8 +327,11 @@ def q_type(x, y, dir_id):
         i = 0
         for q in qxmc:
             if q_type_value in q:
-                b[player_nu][huo_nu][i].append(((x, y), dir_id, q_type_value))
+                b[player_nu][huo_nu][i].append(((x, y), dir_id, q_type_value, empty_per))
             i += 1
+            value = 10 ** (4 - i)
+            for vz in empty_per:
+                c[player_nu][vz[0]][vz[1]] += value
 
 
 if __name__ == '__main__':
@@ -319,11 +352,15 @@ if __name__ == '__main__':
     # 初始化棋盘
     pygame.display.update()
 
-    # 初始化棋盘数组
+    # 初始化棋盘数组,权限表
     for i in range(LINES):
         a.append([])
+        c[0].append([])
+        c[1].append([])
         for j in range(LINES):
             a[i].append(0)  # 棋盘上每个格子初始为空
+            c[0][i].append(0)
+            c[1][i].append(0)
 
     # 初始化时钟
     clock = pygame.time.Clock()
@@ -368,6 +405,13 @@ if __name__ == '__main__':
             if judge_victory(current_po, currentPlayer.id):
                 print(currentPlayer.name + "我赢了，哈哈哈哈哈哈啊哈哈！")
 
+            # 初始化权限表
+
+            for i in range(LINES):
+                for j in range(LINES):
+                    c[0][i][j] = 0  # 棋盘上每个格子初始为空
+                    c[1][i][j] = 0  # 棋盘上每个格子初始为空
+
             # 记录棋型
 
             # 清空棋型库，重新计算全部棋型
@@ -381,6 +425,8 @@ if __name__ == '__main__':
                             q_type(x, y, d)
             print('============================')
             print(b)
+            print('++++++++++++++++++++++++++++')
+            print(c)
             # 转换玩家
             if currentPlayer == player1:
                 currentPlayer = player2
