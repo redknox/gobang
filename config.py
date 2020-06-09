@@ -11,6 +11,9 @@ FPS = 50  # 帧数
 WIDE = 771  # 工作区为长宽为771的正方形
 SCREEN = (WIDE, WIDE)  # 屏幕大小
 LINES = 15  # 标准五子棋棋盘，有十五条线
+CELL_WIDTH = (WIDE - 20) // LINES  # 格子宽度
+PIECE_WIDTH = 50  # 棋子宽度
+PIECE_HEIGHT = 50  # 棋子高度
 
 # 按钮相关
 BTN_SIZE = (222, 66)  # 按钮大小
@@ -23,7 +26,7 @@ BTN_TXT_COLOR = (255, 255, 255)
 BTN_PADDING_LEFT = 50
 BTN_PADDING_RIGHT = 50
 BTN_PADDING_TOP = 50
-BTN_PADDING_BOTTOM = 50
+BTN_PADDING_BOTTOM = 150
 
 # 按钮排列方式
 BTN_ARRANGED_VERTICALLY = 1
@@ -46,12 +49,30 @@ BTN_ON_DEFAULT = (BTN_ARRANGED_VERTICALLY, BTN_ON_CENTER)
 # 文字相关
 FONT_FILE = "方正硬笔楷书简体.ttf"
 
+# 棋子配置
+BLACK_PIECE = 0  # 黑棋的编号为0
+WHITE_PIECE = 1  # 白棋的编号为1
+
 ########################################################
 # 变量
 # 下面的变量在程序中可以更改
 ########################################################
 
-SHOW_ORDER = False
+# 系统变量
+MAIN_SCREEN = ''  # 系统画板
+
+# 配置信息
+SHOW_ORDER = False  # 是否显示落子顺序，True时，在每个棋子上绘制落步数
+SHOW_GUIDE = False  # 是否显示提示，显示的话，提示自己的攻防建议
+
+# 玩家信息，需要在棋局初始化时，初始化为对应的模块对象
+PLAYER1 = ''  # 执黑先行玩家
+PLAYER2 = ''  # 执白后行玩家
+PLAYERS = (PLAYER1, PLAYER2)  # 玩家数组，用于计算当前玩家
+
+# 当前落子信息
+CUR_PIECE_LOCATION = (0, 0)  # 当前落子信息
+CUR_PIECE_COLOR = (BLACK_PIECE)  # 当前落子颜色
 
 
 def test():

@@ -19,6 +19,7 @@ new_img_filename = "新建背景.jpg"  # 封面背景文件
 # 操作的按钮，第一列为按钮上显示的文字，第二列为操作的ID
 buttonList = (
     ["算法对手", 3],
+    ["AI对手", 3],
     ["返回", 5]
 )
 
@@ -27,11 +28,11 @@ buttonList = (
 # 初始化，绘制背景，按钮和按钮上的文字，创建按钮的检测区域数组
 #################################################################
 
-def init():
+def init(screen):
     # 初始化界面
     if not pygame.get_init():
         pygame.init()
-    screen = pygame.display.set_mode(SCREEN, 0, 32)
+    # screen = pygame.display.set_mode(SCREEN, 0, 32)
 
     # 绘制背景
     background = pygame.image.load(new_img_filename)
@@ -48,8 +49,8 @@ def init():
     pygame.display.update()
 
 
-def load():
-    init()
+def load(screen):
+    init(screen)
     while True:
         for event in pygame.event.get():
             if event.type == QUIT:  # 退出按钮被按下
@@ -61,8 +62,11 @@ def load():
 
 
 def test():
+    if not pygame.get_init():
+        pygame.init()
+    screen = pygame.display.set_mode(SCREEN, 0, 32)
     while True:
-        fu = load()
+        fu = load(screen)
         print(fu)
 
 

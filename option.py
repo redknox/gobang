@@ -21,11 +21,11 @@ new_img_filename = "新建背景.jpg"  # 封面背景文件
 # 初始化，绘制背景，按钮和按钮上的文字，创建按钮的检测区域数组
 #################################################################
 
-def init():
+def init(screen):
     # 初始化界面
     if not pygame.get_init():
         pygame.init()
-    screen = pygame.display.set_mode(SCREEN, 0, 32)
+    # screen = pygame.display.set_mode(SCREEN, 0, 32)
 
     # 绘制背景
     background = pygame.image.load(new_img_filename)
@@ -52,8 +52,8 @@ def init():
     pygame.display.update()
 
 
-def load():
-    init()
+def load(screen):
+    init(screen)
     while True:
         for event in pygame.event.get():
             if event.type == QUIT:  # 退出按钮被按下
@@ -63,14 +63,17 @@ def load():
                 if func == 6:
                     global SHOW_ORDER
                     SHOW_ORDER = not SHOW_ORDER
-                    init()
+                    init(screen)
                 elif func == 5:
                     return func  # 返回按钮对应的操作
 
 
 def test():
+    if not pygame.get_init():
+        pygame.init()
+    screen = pygame.display.set_mode(SCREEN, 0, 32)
     while True:
-        fu = load()
+        fu = load(screen)
         print(fu)
 
 

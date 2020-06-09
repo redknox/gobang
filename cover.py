@@ -28,11 +28,11 @@ buttonList = (
 # 初始化，绘制背景，按钮和按钮上的文字，创建按钮的检测区域数组
 #################################################################
 
-def init():
+def init(screen):
     # 初始化界面
     if not pygame.get_init():
         pygame.init()
-    screen = pygame.display.set_mode(SCREEN, 0, 32)
+    # screen = pygame.display.set_mode(SCREEN, 0, 32)
 
     # 绘制背景
     background = pygame.image.load(cover_img_filename)
@@ -49,8 +49,12 @@ def init():
     pygame.display.update()
 
 
-def load():
-    init()
+##############################################################
+# 初始化屏幕，监控鼠标点击事件，如果点击在按钮上则返回按钮ID
+# think: 每个屏幕监控的操作不同，有的监控鼠标按键，有的同事还监控其他事件，不适宜抽象成函数
+###############################################################
+def load(screen):
+    init(screen)
     while True:
         for event in pygame.event.get():
             if event.type == QUIT:  # 退出按钮被按下
@@ -62,8 +66,9 @@ def load():
 
 
 def test():
+    screen = pygame.display.set_mode(SCREEN, 0, 32)
     while True:
-        fu = load()
+        fu = load(screen)
         if fu < 0:
             print("检测到鼠标点击，但未点击按钮。")
         else:
