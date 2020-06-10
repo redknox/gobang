@@ -142,32 +142,20 @@ def judgeVictory():
     direction = ((0, 1), (1, 0), (1, 1), (1, -1))  # 四个方向
 
     for d in direction:
-        count = 0  # 计数器，达到5时判胜
-        cx, cy = CUR_PIECE_LOCATION  # 当前探测位置
-        while pieceRecord[cx][cy] == CUR_PIECE_COLOR:
-            count += 1
-            if count == 5:  # 返回判胜
-                return True
-            cx = cx - d[0]  # 先沿着X轴的负数方向
-            if cx < 0 or cx >= LINES:
-                break
-            cy = cy - d[1]
-            if cy < 0 or cy >= LINES:
-                break
-        # 如果一个方向上探测完毕，还没有得出结论，则开始探测落子的另一侧
-        cx, cy = CUR_PIECE_LOCATION
-        cx = cx + d[0]
-        cy = cy + d[1]
-        while pieceRecord[cx][cy] == CUR_PIECE_COLOR:
-            count += 1
-            if count == 5:
-                return True
-            cx = cx + d[0]
-            if cx < 0 or cx >= LINES:
-                break
-            cy = cy + d[1]
-            if cy < 0 or cy >= LINES:
-                break
+        count = 1  # 计数器，达到5时判胜
+        for curDir in (-1, 1):
+            cx, cy = CUR_PIECE_LOCATION  # 当前探测位置
+            cx, cy = cx + d[0] * curDir, cy + d[1] * curDir
+            while pieceRecord[cx][cy] == CUR_PIECE_COLOR:
+                count += 1
+                if count == 5:  # 如果有5连直接判胜
+                    return True
+                cx = cx + d[0] * curDir
+                if cx < 0 or cx >= LINES:
+                    break
+                cy = cy + d[1] * curDir
+                if cy < 0 or cy >= LINES:
+                    break
     return False
 
 
