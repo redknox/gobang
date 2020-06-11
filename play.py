@@ -12,8 +12,9 @@ import pygame
 from pygame.locals import *
 
 import button
-import human  # 导入人类棋手
+from algorithmPlayer import AlgorithmPlayer
 from config import *
+from humanPlayer import HumanPlayer
 
 ######################################################################
 # 本模块是五子棋程序的核心调度模块，本模块的功能主要有：
@@ -65,7 +66,10 @@ def init(screen):
 
     # 初始化两个玩家
     # todo: 待AI玩家开发完毕，在这里将执白玩家设置成AI玩家
-    player = (human, human)  # 初始化玩家信息
+    player1 = HumanPlayer(BLACK_PIECE)
+    player2 = AlgorithmPlayer(WHITE_PIECE)
+
+    player = (player1, player2)  # 初始化玩家信息
 
     # 初始化棋局数组
     pieceRecord = np.full((LINES, LINES), -1)
@@ -130,6 +134,7 @@ def judgeVictory():
         global CUR_PIECE_COLOR
         CUR_PIECE_COLOR = (CUR_PIECE_COLOR + 1) % 2  # 因为棋盘上有225空位，那么下最后一个子的人一定是黑棋，判定白棋获胜可以直接交换当前玩家。
         return True
+    # TODO：判断当前落子是否下出禁手，如出禁手则直接判对方获胜
 
     # 判胜算法：在四个方向上（水平，垂直，左斜，右斜），探测落子位置一侧的位置是否有与落子颜色相同的棋子，
     # 有则计数器加一，重复一直到：
@@ -188,7 +193,8 @@ def load(screen):
 
     while True:  # 双方轮流落子，直到决出胜负
         # 调用棋手模块go程序，取得棋手给出的落子位置
-        CUR_PIECE_LOCATION = player[CUR_PIECE_COLOR].go(pieceRecord)  # 每个棋手模块必须有一个go()函数，返回一个棋盘上的位置，作为落子的的地垫
+        CUR_PIECE_LOCATION = player[CUR_PIECE_COLOR].go(pieceRecord,
+                                                        CUR_PIECE_LOCATION)  # 每个棋手模块必须有一个go()函数，返回一个棋盘上的位置，作为落子的的地垫
         # 检测落子位置是否合法,合法的话将落子信息记录到落子信息表，否则的话重新调用 TODO：AI棋手要具有判断落子是否合法的能力
         if pieceRecord[CUR_PIECE_LOCATION[0], CUR_PIECE_LOCATION[1]] != -1:
             continue
@@ -214,7 +220,7 @@ def load(screen):
     # 显示胜负信息
     # 绘制文字
     font = pygame.font.Font(FONT_FILE, 150)  # 读取字体
-    sufFont = font.render(player[CUR_PIECE_COLOR].WIN_TEXT, False, (0, 255, 0))  # 渲染文字
+    sufFont = font.render(player[CUR_PIECE_COLOR].winText, False, (0, 255, 0))  # 渲染文字
     fontRect = sufFont.get_rect()  # 取得渲染后画板的尺寸
 
     # 调整文字显示位置
