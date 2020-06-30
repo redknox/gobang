@@ -16,15 +16,22 @@ from config import *
 
 if __name__ == '__main__':
     pygame.init()
+    # 播放音乐
+    midiFile = "Music_14.mid"
+    pygame.mixer.init()
+    pygame.mixer.music.load(midiFile)
+    pygame.mixer.music.play(-1)
+
     screen = pygame.display.set_mode(SCREEN, 0, 32)
     f = cover.load(screen)
     while f != 2:  # 当退出按钮被按下，则退出循环结束游戏
         if f == 0:  # 当新建游戏按钮被按下，调起新建游戏模块
             f = new.load(screen)
         elif f == 1:  # 当选项按钮被按下，调起选项模块
-            f = option.load(screen)
+            gameConfig = option.load(screen, gameConfig)
+            f = 5
         elif f == 3:  # 当开始游戏按钮被按下，调起游戏模块
-            f = play.load(screen)
+            f = play.load(screen, gameConfig)
         elif f == 5:  # 当返回按钮被按下，调起封面主菜单模块。
             f = cover.load(screen)
     # TODO：显示结束游戏画面

@@ -18,6 +18,7 @@ PIECE_HEIGHT = 50  # 棋子高度
 # 按钮相关
 BTN_SIZE = (222, 66)  # 按钮大小
 BTN_COLOR = (102, 102, 102, 204)  # 按钮颜色
+BTN_ON_COLOR = (204, 204, 204, 204)  # 鼠标在按钮上时的颜色
 BTN_LINE_SPACING = 50  # 按钮行间距
 BTN_FONT_SIZE = 28
 BTN_TXT_COLOR = (255, 255, 255)
@@ -65,6 +66,16 @@ MAIN_SCREEN = ''  # 系统画板
 SHOW_ORDER = False  # 是否显示落子顺序，True时，在每个棋子上绘制落步数
 SHOW_GUIDE = False  # 是否显示提示，显示的话，提示自己的攻防建议
 
+# 声音信息
+MUSIC_ON = True
+SOUND_ON = False
+
+gameConfig = {
+    "music_on": True,
+    "sound_on": False,
+    "show_order": True
+}
+
 # 玩家信息，需要在棋局初始化时，初始化为对应的模块对象
 PLAYER1 = ''  # 执黑先行玩家
 PLAYER2 = ''  # 执白后行玩家
@@ -73,6 +84,7 @@ PLAYERS = (PLAYER1, PLAYER2)  # 玩家数组，用于计算当前玩家
 # 当前落子信息
 CUR_PIECE_LOCATION = (0, 0)  # 当前落子信息
 CUR_PIECE_COLOR = (BLACK_PIECE)  # 当前落子颜色
+PIECE_COUNT = 0  # 落子总数
 
 
 def test():

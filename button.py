@@ -12,7 +12,7 @@ from pygame.locals import *
 
 from config import *
 
-hotArea = []  # 按钮的点击热区数组
+hotArea = []  # 按钮的点击热区数组,里面放有菜单的所有信息，菜单文字，ID，位置，大小
 
 
 ################################################################################
@@ -20,18 +20,12 @@ hotArea = []  # 按钮的点击热区数组
 # 输入：buttonList 一个button的数组，格式为（"按钮上的文字",id),id必须唯一
 #      screen 需要绘制按钮图片的screen，不同screen的图层，在合并时会产生一些透明的问题
 #      btnArrange button的排列方式和位置，默认为按钮垂直排列，位于屏幕正中
-# 输出：一个绘制有按钮和按钮文字的透明图层，可以根据需要叠加到screen上
+# 输出：hotArea数组，里面放有所有菜单项的菜单文字，ID，位置，大小
 ################################################################################
 
-def init(buttonList, screen, btnArrange=BTN_ON_DEFAULT):
+def init(buttonList, btnArrange=BTN_ON_DEFAULT):
     global hotArea
     hotArea = []  # 清空之前产生的数据
-    if not pygame.get_init():
-        pygame.init()
-    btnSurface = screen.convert_alpha()  # 创建一个透明图层
-
-    font = pygame.font.Font(FONT_FILE, BTN_FONT_SIZE)  # 读取字体
-    font.set_bold(True)
 
     btnNumbers = len(buttonList)  # 获得按钮总数
 
@@ -87,37 +81,52 @@ def init(buttonList, screen, btnArrange=BTN_ON_DEFAULT):
     elif btnArrange[1] == BTN_ON_BOTTOM_RIGHT:
         btnUpLeftX = WIDE - btnGroupWidth - BTN_PADDING_RIGHT
         btnUpLeftY = WIDE - btnGroupHeight - BTN_PADDING_BOTTOM
-
-    # 在画布上依次绘制按钮
+        # 根据排列方式依次计算按钮的位置，并将按钮信息放入hotArea组
     for i in range(btnNumbers):
-        # 当前按钮的左上角坐标
         btnX = btnUpLeftX + btnHorizontalWidth * i
         btnY = btnUpLeftY + btnVerticalWidth * i
-        # 绘制按钮
-        pygame.draw.rect(btnSurface, BTN_COLOR,
-                         [btnX,
-                          btnY,
-                          BTN_SIZE[0],
-                          BTN_SIZE[1]],
-                         0)
+        hotArea.append((buttonList[i][0], buttonList[i][1], (btnX, btnY, BTN_SIZE[0], BTN_SIZE[1])))
 
-        # 记录按钮的点击热点区
-        hotArea.append((buttonList[i][0], buttonList[i][1], (btnX, btnY)))
+    return hotArea
+
+
+##################################################################################
+# 绘制屏幕
+# 从hotArea数组里依次取出相关信息绘制数组到一个透明的图层上。
+# 输入：screen: pygame.screen类型，需要绘制的画框
+#      mouseOnButton:int，需要高亮绘制背景的按钮ID
+# 输出：一个pygame透明图层，可以覆盖在背景上
+##################################################################################
+def drawBtn(screen, mouseOnButton=-1):
+    if not pygame.get_init():
+        pygame.init()
+    btnSurface = screen.convert_alpha()  # 创建一个透明图层
+
+    font = pygame.font.Font(FONT_FILE, BTN_FONT_SIZE)  # 读取字体
+    font.set_bold(True)
+
+    for btn in hotArea:
+        # 当前按钮的左上角坐标
+        # 绘制按钮
+        if mouseOnButton == btn[1]:
+            pygame.draw.rect(btnSurface, BTN_ON_COLOR, btn[2], 0)
+        else:
+            pygame.draw.rect(btnSurface, BTN_COLOR, btn[2], 0)
 
         # 绘制按钮文字
-        fntSurface = font.render(buttonList[i][0], False, BTN_TXT_COLOR)  # 渲染文字
+        fntSurface = font.render(btn[0], False, BTN_TXT_COLOR)  # 渲染文字
         fontRect = fntSurface.get_rect()  # 取得渲染后画板的尺寸
 
         # 将文字图层合并到按钮图层合适的位置，文字位置计算基于按钮的左上角坐标和按钮宽度与高度，这样可以适应不同布局的按钮排列
         btnSurface.blit(fntSurface, (
-            btnX + (BTN_SIZE[0] - fontRect[2]) / 2,
-            btnY + (BTN_SIZE[1] - fontRect[3]) / 2 + 2))  # 实际应用将文字向下修正两个像素，否则显得文字在按钮上偏上
+            btn[2][0] + (btn[2][2] - fontRect[2]) / 2,
+            btn[2][1] + (btn[2][3] - fontRect[3]) / 2 + 2))  # 实际应用将文字向下修正两个像素，否则显得文字在按钮上偏上
 
     return btnSurface
 
 
 ##################################################################################
-# 点击检测，根据传入的坐标，检测是否位于按钮上。是的话返回按钮的ID，否的话返回-1。此函数必须在按钮图层初始化后才可以调用，否则会
+# 点击和鼠标当前位置检测，根据传入的坐标，检测是否位于按钮上。是的话返回按钮的ID，否的话返回-1。此函数必须在按钮图层初始化后才可以调用，否则会
 # 抛出异常。
 # 输入:(x,y)格式的坐标信息
 # 输出:int 按钮的id或者-1
@@ -134,7 +143,7 @@ def checkButtonPress(pos):
 
 
 # 测试
-def test(btnArrange=1, btnOn=4):
+def test(btnArrange=1, btnOn=4, mouseOnBtn=9999):
     buttonList = (
         ["新游戏", 0],
         ["读取进度", 1],
@@ -151,7 +160,8 @@ def test(btnArrange=1, btnOn=4):
     background = pygame.transform.scale(background, SCREEN)
     screen.blit(background, (0, 0))
 
-    surface = init(buttonList, screen, (btnArrange, btnOn))
+    init(buttonList, (btnArrange, btnOn))
+    surface = drawBtn(screen)
 
     screen.blit(surface, (0, 0))
     pygame.display.update()
@@ -160,6 +170,15 @@ def test(btnArrange=1, btnOn=4):
         for event in pygame.event.get():
             if event.type == QUIT:  # 退出按钮被按下
                 exit()
+            elif event.type == MOUSEMOTION:  # 当移动鼠标时判断是否在按钮上，是的话则高亮按钮，移开后恢复原状
+                pos = pygame.mouse.get_pos()
+                func = checkButtonPress(pos)
+                if mouseOnBtnId != func:
+                    surface = drawBtn(screen, func)
+                    screen.blit(surface, (0, 0))
+                    pygame.display.update()
+                    mouseOnBtnId = func
+
             elif event.type == MOUSEBUTTONDOWN:  # 鼠标按键被按下
                 func = checkButtonPress(pygame.mouse.get_pos())  # 取得鼠标点击按钮的编号，如果未点击按钮，则返回-1
                 return func  # 返回按钮对应的操作

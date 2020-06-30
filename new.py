@@ -19,9 +19,11 @@ new_img_filename = "新建背景.jpg"  # 封面背景文件
 # 操作的按钮，第一列为按钮上显示的文字，第二列为操作的ID
 buttonList = (
     ["算法对手", 3],
-    ["AI对手", 3],
     ["返回", 5]
 )
+
+# 背景图层
+background = ''
 
 
 #################################################################
@@ -35,12 +37,14 @@ def init(screen):
     # screen = pygame.display.set_mode(SCREEN, 0, 32)
 
     # 绘制背景
+    global background
     background = pygame.image.load(new_img_filename)
     background = pygame.transform.scale(background, SCREEN)
     screen.blit(background, (0, 0))
 
     # 绘制按钮
-    surf = button.init(buttonList, screen)
+    button.init(buttonList)
+    surf = button.drawBtn(screen)
 
     # 合并图层
     screen.blit(surf, (0, 0))
@@ -51,6 +55,7 @@ def init(screen):
 
 def load(screen):
     init(screen)
+    onButton = -1
     while True:
         for event in pygame.event.get():
             if event.type == QUIT:  # 退出按钮被按下
@@ -59,6 +64,14 @@ def load(screen):
                 func = button.checkButtonPress(pygame.mouse.get_pos())
                 if func != -1:
                     return func  # 返回按钮对应的操作
+            elif event.type == MOUSEMOTION:
+                func = button.checkButtonPress(pygame.mouse.get_pos())
+                if func != onButton:
+                    surf = button.drawBtn(screen, func)
+                    screen.blit(background, (0, 0))
+                    screen.blit(surf, (0, 0))
+                    pygame.display.update()
+                    onButton = func
 
 
 def test():

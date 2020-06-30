@@ -29,11 +29,13 @@ from humanPlayer import HumanPlayer
 # 变量#
 new_img_filename = "gobang_plate.jpeg"  # 封面背景文件
 WIN = False  # 取胜标志，当某方判胜时改标志为True
+winPiece = []  # 决胜棋位置，用于最终显示获胜提示
 background = ''  # 背景图层
 sufPiece = ''  # 棋子图层
 sufPieceOrder = ''  # 棋子顺序图层
 sufOthers = ''  # 其他信息图层
 sufFont = ''  # 文字图层
+fontCount = ''  # 显示落子顺序的字体
 pieceBlack = ''  # 黑色棋子图层
 pieceWhite = ''  # 白色棋子图层
 pieceColor = ''  # 落子图层数组
@@ -47,8 +49,14 @@ player = []
 # 操作的按钮，第一列为按钮上显示的文字，第二列为操作的ID
 buttonList = (
     ["再来一局", 0],
-    ["退出", 2]
+    ["返回", 2]
 )
+
+# 背景图层
+background = ''
+
+# 游戏配置
+gameConfig = ''
 
 
 #################################################################
@@ -60,9 +68,11 @@ def init(screen):
         pygame.init()
 
     # 将变量设为初始值
-    global WIN, background, pieceRecord, player, CUR_PIECE_COLOR
+    global WIN, background, pieceRecord, player, CUR_PIECE_COLOR, fontCount
     WIN = False  # 设置获胜标志为否
     CUR_PIECE_COLOR = BLACK_PIECE  # 设置当前玩家为黑棋
+
+    fontCount = pygame.font.Font(FONT_FILE, 20)  # 读取字体
 
     # 初始化两个玩家
     # todo: 待AI玩家开发完毕，在这里将执白玩家设置成AI玩家
@@ -75,6 +85,7 @@ def init(screen):
     pieceRecord = np.full((LINES, LINES), -1)
 
     # 绘制背景
+    global background
     background = pygame.image.load(new_img_filename)
     background = pygame.transform.scale(background, SCREEN)
     screen.blit(background, (0, 0))
@@ -99,6 +110,8 @@ def init(screen):
 
 # 落子后重绘棋子层，顺序层和其他层
 def drawPiece(screen):
+    global PIECE_COUNT
+    PIECE_COUNT = PIECE_COUNT + 1
     # 重绘棋子，因五子棋不会移动棋子，直接在原图层上增绘最新落下的棋子,而不用重绘全部棋子
 
     x = CUR_PIECE_LOCATION[0] * CELL_WIDTH + 10
@@ -110,9 +123,27 @@ def drawPiece(screen):
 
     # 绘制其他图层
 
-    if SHOW_ORDER:  # 如果配置了显示落子顺序，则重绘落子顺序层
+    if gameConfig['show_order']:  # 如果配置了显示落子顺序，则重绘落子顺序层
         # TODO：在这里写将顺序文字写到相应图层上的代码
-        screen.blit(sufPieceOrder, (0, 0))
+
+        # 绘制文字
+        if CUR_PIECE_COLOR != 0:
+            sufFont = fontCount.render(str(PIECE_COUNT), False, (0, 0, 0))  # 渲染文字
+        else:
+            sufFont = fontCount.render(str(PIECE_COUNT), False, (255, 255, 255))  # 渲染文字
+
+        fontRect = sufFont.get_rect()  # 取得渲染后画板的尺寸
+
+        # 调整文字显示位置
+
+        x = x + (PIECE_WIDTH - fontRect[2]) // 2
+        y = y + (PIECE_HEIGHT - fontRect[3]) // 2
+
+        # 合并文字图层
+        sufPiece.blit(sufFont, (x, y))
+
+        # pygame.draw.circle(sufPiece, (0, 0, 255), (x + CELL_WIDTH // 2, y + CELL_WIDTH // 2), 10)
+        screen.blit(sufPiece, (0, 0))
         pass
     if SHOW_GUIDE:  # 如果配置了显示其他信息层，则重绘其他信息层
         # TODO：在这里写将辅助信息写到相应图层上的代码，本层每次下棋都要重绘
@@ -145,15 +176,19 @@ def judgeVictory():
     # 结果有两个：1、计数器达到5，判胜；2、遇到对方棋子/空位/边界。都能够结束循环。
 
     direction = ((0, 1), (1, 0), (1, 1), (1, -1))  # 四个方向
-
+    global winPiece
     for d in direction:
         count = 1  # 计数器，达到5时判胜
+        winPiece = []  # 清空旧棋型
         for curDir in (-1, 1):
             cx, cy = CUR_PIECE_LOCATION  # 当前探测位置
+            winPiece.append((cx, cy))
             cx, cy = cx + d[0] * curDir, cy + d[1] * curDir
             while pieceRecord[cx][cy] == CUR_PIECE_COLOR:
                 count += 1
+                winPiece.append((cx, cy))
                 if count == 5:  # 如果有5连直接判胜
+                    print(winPiece)
                     return True
                 cx = cx + d[0] * curDir
                 if cx < 0 or cx >= LINES:
@@ -182,9 +217,11 @@ def mouseClick():
 # 4、胜负判定
 # 5、通过按钮显示是否再来一盘或退出
 ################################
-def load(screen):
+def load(screen, config):
     # 初始化游戏
     init(screen)
+    global gameConfig
+    gameConfig = config
     # 初始化玩家
     # PLAYER1.init(BLACK_PIECE),将玩家1初始化为黑棋玩家
     # PLAYER2.init(WHITE_PIECE),将玩家2初始化成为白棋玩家,对于机器玩家来说，黑棋白棋策略不同，所以要先定义
@@ -217,6 +254,11 @@ def load(screen):
     # TODO:在决胜棋型上标记红色
 
     # -------------------------------------------
+    for wp in winPiece:
+        pygame.draw.circle(sufPiece, (255, 0, 0),
+                           (wp[0] * CELL_WIDTH + 10 + CELL_WIDTH // 2, wp[1] * CELL_WIDTH + 10 + CELL_WIDTH // 2), 10)
+    screen.blit(sufPiece, (0, 0))
+
     # 显示胜负信息
     # 绘制文字
     font = pygame.font.Font(FONT_FILE, 150)  # 读取字体
@@ -232,7 +274,8 @@ def load(screen):
 
     # -------------------------------------------
     # 绘制按钮
-    surf = button.init(buttonList, screen, (BTN_ARRANGED_VERTICALLY, BTN_ON_BOTTOM_CENTER))
+    button.init(buttonList, (BTN_ARRANGED_VERTICALLY, BTN_ON_BOTTOM_CENTER))
+    surf = button.drawBtn(screen)
 
     # 合并图层并显示
     screen.blit(surf, (0, 0))
@@ -243,7 +286,7 @@ def load(screen):
         buttonPress = button.checkButtonPress(mouseClick())
         if buttonPress != -1:
             if buttonPress == 2:  # 重新开局
-                exit()
+                return 5
             elif buttonPress == 0:  # 退出游戏
                 return 3
             break

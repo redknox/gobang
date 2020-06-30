@@ -23,6 +23,8 @@ buttonList = (
     ["退出", 2],
 )
 
+backGround = ''  # 背景图层
+
 
 #################################################################
 # 初始化，绘制背景，按钮和按钮上的文字，创建按钮的检测区域数组
@@ -35,12 +37,14 @@ def init(screen):
     # screen = pygame.display.set_mode(SCREEN, 0, 32)
 
     # 绘制背景
-    background = pygame.image.load(cover_img_filename)
-    background = pygame.transform.scale(background, SCREEN)
-    screen.blit(background, (0, 0))
+    global backGround
+    backGround = pygame.image.load(cover_img_filename)
+    backGround = pygame.transform.scale(backGround, SCREEN)
+    screen.blit(backGround, (0, 0))
 
     # 绘制按钮
-    surf = button.init(buttonList, screen)
+    button.init(buttonList)
+    surf = button.drawBtn(screen)
 
     # 合并图层
     screen.blit(surf, (0, 0))
@@ -55,6 +59,7 @@ def init(screen):
 ###############################################################
 def load(screen):
     init(screen)
+    onButton = -1
     while True:
         for event in pygame.event.get():
             if event.type == QUIT:  # 退出按钮被按下
@@ -63,6 +68,14 @@ def load(screen):
                 func = button.checkButtonPress(pygame.mouse.get_pos())
                 if func != -1:
                     return func  # 返回按钮对应的操作
+            elif event.type == MOUSEMOTION:
+                func = button.checkButtonPress(pygame.mouse.get_pos())
+                if func != onButton:
+                    surf = button.drawBtn(screen, func)
+                    screen.blit(backGround, (0, 0))
+                    screen.blit(surf, (0, 0))
+                    pygame.display.update()
+                    onButton = func
 
 
 def test():
